@@ -74,8 +74,6 @@ void load_data(ifstream &data, long fileSize, string filePath)
 
     for(int i=0;i<fileSize;i++)
     {
-
-        //data>>fileBuf[i];
         fileBuf[i]=tmp[i];
         //if(i<10)cout<<(int)fileBuf[i]<<" ";
     }
@@ -191,5 +189,3 @@ int main()
     }
 
 }
-// save data.ok C:\Users\dns\Downloads\Telegram Desktop\
-// load data.ok C:\Users\dns\Downloads\test\
