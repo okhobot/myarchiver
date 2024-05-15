@@ -1,0 +1,19 @@
+# depslib dependency file v1.0
+1715788061 source:c:\oleg\c++\compressor\main.cpp
+	<iostream>
+	<fstream>
+	<vector>
+	<windows.h>
+	<dirent.h>
+	<sstream>
+	<algorithm>
+
+1715788941 source:c:\oleg\c++\archiver\main.cpp
+	<iostream>
+	<fstream>
+	<vector>
+	<windows.h>
+	<dirent.h>
+	<sstream>
+	<algorithm>
+
