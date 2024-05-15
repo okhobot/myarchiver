@@ -24,7 +24,7 @@ string myreplace(string s, char from, char to)
     return s;
 }
 
-string get_data(string filePath)
+string file_to_bin(string filePath)
 {
     stringstream data;
 
@@ -61,7 +61,7 @@ string get_data(string filePath)
     return data.str();
 }
 
-void load_data(ifstream &data, long fileSize, string filePath)
+void bin_to_data(ifstream &data, long fileSize, string filePath)
 {
 
     char *tmp=new char[fileSize];
@@ -122,7 +122,7 @@ void generate_data(string base_path_load, string data_name)
         cout<<folder_data[i].name<<" ";
         odata<<folder_data[i].name<<endl;
         if(folder_data[i].isdir){odata<<0<<endl;cout<<0<<endl;}
-        else odata<<get_data(base_path_load+folder_data[i].name)<<endl;
+        else odata<<file_to_bin(base_path_load+folder_data[i].name)<<endl;
     }
     odata.close();
 }
@@ -145,7 +145,7 @@ void generate_folder(string base_path_save, string data_name)
         fname=base_path_save+fname;
 
         if(file_size==0)CreateDirectory (fname.c_str(), NULL);
-        else load_data(idata,file_size,fname);
+        else bin_to_data(idata,file_size,fname);
     }
     idata.close();
 }
