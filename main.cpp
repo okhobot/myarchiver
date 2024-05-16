@@ -243,7 +243,7 @@ public:
         if(hKey)
         {
 
-            data="cmd /c \"cd /d %1 &&echo save %1.ok %1| "+exe_path+" \"";
+            data="cmd /c \"cd /d %1 &&echo save %1.ng %1| "+exe_path+" \"";
             check_registry_errors (RegSetValueEx (hKey, "", 0, REG_SZ, (LPBYTE)data.c_str(), strlen(data.c_str())));
             RegCloseKey(hKey);
         }
@@ -251,7 +251,7 @@ public:
 
     }
 
-    void delete_registry()
+    void delete_from_registry()
     {
         check_registry_errors (RegDeleteTreeW (HKEY_CLASSES_ROOT,L"*\\shell\\openWithMyarchiver"));//RegDeleteTree
 
@@ -266,12 +266,13 @@ int main()
     setlocale(1251,"Russian");
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
+    //std::cout<<"проверка языка"<<std::endl;
 
     Archiver achiver;
     std::string com,path, data_name;
-    //generate_data("./0/","d.ok");
-    //if(debug)cout<<endl;
-    //generate_folder("./t/","d.ok");
+    //achiver.generate_data("./0/","data.ok");
+    //if(debug)std::cout<<std::endl;
+    //achiver.generate_folder("./t/","data.ok");
 
 
     ///while(true)
@@ -293,7 +294,7 @@ int main()
         else if(com=="setup")
             achiver.setup();
         else if(com=="delete")
-            achiver.delete_registry();
+            achiver.delete_from_registry();
         else if(com=="help")
         {
             const char* msg =

@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1715877403 source:c:\oleg\git\myarchiver\main.cpp
+1715893341 source:c:\oleg\git\myarchiver\main.cpp
 	<iostream>
 	<fstream>
 	<vector>
