@@ -1,0 +1,10 @@
+# depslib dependency file v1.0
+1715867668 source:c:\oleg\git\myarchiver\main.cpp
+	<iostream>
+	<fstream>
+	<vector>
+	<dirent.h>
+	<sstream>
+	<algorithm>
+	<Windows.h>
+
