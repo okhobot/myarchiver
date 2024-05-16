@@ -7,6 +7,7 @@
 #define  _WIN32_WINNT  0x0600
 #include <Windows.h>
 #define debug 1
+
 class Archiver
 {
 
@@ -213,7 +214,7 @@ public:
         check_registry_errors (RegCreateKeyExW (HKEY_CLASSES_ROOT,L"*\\shell\\openWithMyarchiver",0,L"",REG_OPTION_NON_VOLATILE,KEY_SET_VALUE,NULL,&hKey,NULL));
         if(hKey)
         {
-            data="РћС‚РєСЂС‹С‚СЊ СЃ РїРѕРјРѕС‰СЊСЋ myarchiver";
+            data="Открыть с помощью myarchiver";
             check_registry_errors (RegSetValueEx (hKey, "MUIVerb", 0, REG_SZ, (LPBYTE)data.c_str(), strlen(data.c_str())));
             RegCloseKey(hKey);
         }
@@ -233,7 +234,7 @@ public:
         check_registry_errors (RegCreateKeyExW (HKEY_CLASSES_ROOT,L"Folder\\shell\\archiveWithMyarchiver",0,L"",REG_OPTION_NON_VOLATILE,KEY_SET_VALUE,NULL,&hKey,NULL));
         if(hKey)
         {
-            data="РђСЂС…РёРІРёСЂРѕРІР°С‚СЊ СЃ РїРѕРјРѕС‰СЊСЋ myarchiver";
+            data="Архивировать с помощью myarchiver";
             check_registry_errors (RegSetValueEx (hKey, "MUIVerb", 0, REG_SZ, (LPBYTE)data.c_str(), strlen(data.c_str())));
             RegCloseKey(hKey);
         }
@@ -257,6 +258,7 @@ public:
         check_registry_errors (RegDeleteTreeW (HKEY_CLASSES_ROOT,L"Folder\\shell\\archiveWithMyarchiver"));
     }
 };
+
 
 
 int main()
@@ -308,4 +310,5 @@ int main()
         if(debug)std::cout<<"done"<<std::endl<<std::endl;
 
     }
+    return 0;
 }
