@@ -14,12 +14,14 @@ struct myfile
     bool isdir;
 };
 
-string myreplace(string s, char from, char to)
+string myreplace(string s, string from, string to)
 {
-    for (int i = 0; i < s.size(); i++)
+    size_t pos=s.find(from);
+    while(pos!=string::npos)
     {
-        if (s[i] == from)
-            s[i] = to;
+        s.replace(pos,from.size(),to);
+        pos+=to.size();
+        pos=s.find(from,pos);
     }
     return s;
 }
@@ -129,6 +131,13 @@ void generate_data(string base_path_load, string data_name)
 
 void generate_folder(string base_path_save, string data_name)
 {
+    if(base_path_save=="-/")
+    {
+        base_path_save=myreplace(data_name,".ok","/");
+        cout<<"saving to "<<base_path_save<<endl;
+    }
+    if(GetFileAttributesA(base_path_save.c_str())==INVALID_FILE_ATTRIBUTES)CreateDirectory (base_path_save.c_str(), NULL);
+
     ifstream idata(data_name, ios::binary);
     long file_count,file_size;
     string fname;
@@ -168,13 +177,13 @@ int main()
     //cout<<endl;
     //generate_folder("./t/","d.ok");
 
-    while(true)
+    ///while(true)
     {
         cin>>com>>data_name;
         cin.get();
         getline(cin, path);
         cout<<path<<endl;
-        path=myreplace(path,'\\','/');
+        path=myreplace(path,"\\","/");
         if(path[path.size()-1]!='/')
         {
             cout<<"warning: the path must end in \"/\""<<endl;
