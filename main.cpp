@@ -270,14 +270,17 @@ int main()
 
     Archiver achiver;
     std::string com,path, data_name;
+    bool run=true;
     //achiver.generate_data("./0/","data.ok");
     //if(debug)std::cout<<std::endl;
     //achiver.generate_folder("./t/","data.ok");
 
 
-    ///while(true)
+
+    while(run)
     {
         std::cin>>com;
+        run=(com=="setup"||com=="delete"||com=="help");
         if(com=="save"||com=="load")
         {
             std::cin>>data_name;
@@ -308,7 +311,7 @@ int main()
             std::cout<<msg<<std::endl;
         }
 
-        if(debug)std::cout<<"done"<<std::endl<<std::endl;
+        std::cout<<"done"<<std::endl<<std::endl;
 
     }
     return 0;
