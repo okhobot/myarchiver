@@ -103,7 +103,7 @@ public:
 
     file_info find_same_data(std::vector<BYTE> &data, std::vector<BYTE> &file_data, long min_data_size=25)
     {
-        //return {-1,-1,0};
+        return {-1,-1,0};
 
         long same_data_size=1;
         //std::cout<<"Q"<<std::endl;
