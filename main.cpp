@@ -15,20 +15,19 @@ class Archiver
 
 public:
 
-    GPU gpu;
+    typedef struct file_info
+    {
+         int local_index;
+         int dindex;
+         int dsize;
+    }file_info;
+
 
     struct myfile
     {
         std::string name;
         bool isdir;
     };
-
-
-    Archiver()
-    {
-        gpu.init_gpu({"compress_kernel"});
-
-    }
 
 
 
@@ -106,97 +105,12 @@ public:
         return files;
     }
 
-    std::vector<file_info> find_same_data(std::vector<BYTE> &data, std::vector<BYTE> &file_data, long min_data_size=16)
-    {
-        ///return {-1,-1,0};
-
-        /*
-        long same_data_size=1;
-        //std::cout<<"Q"<<std::endl;
-        for(int i=0;i<file_data.size();i++)
-        {
-            //if(i%10000==0)std::cout<<i<<"/"<<file_data.size()<<std::endl;
-            for(int j=0;j<data.size();j++)
-            {
-                //if(j>17240000&&j%10000==0)std::cout<<j<<std::endl;
-                //if(i%10000==0&&j%10000==0)std::cout<<i<<"/"<<file_data.size()<<" | "<<j<<"/"<<data.size()<<std::endl;
-                if(file_data[i]==data[j])
-                {
-                    same_data_size=1;
-                    //if(i%10000==0&&j%10000==0)std::cout<<"qq"<<std::endl;
-                    while(i+same_data_size<file_data.size()&&j+same_data_size<data.size()&&file_data[i+same_data_size]==data[j+same_data_size])same_data_size++;
-                    //if(i%10000==0&&j%10000==0)std::cout<<i<<"/"<<file_data.size()<<" | "<<j<<"/"<<data.size()<<std::endl;
-                    if(same_data_size>=min_data_size)
-                    {
-                        if(debug)std::cout<<"found: "<<same_data_size<<std::endl;
-                        ///return {i,j,same_data_size};
-                    }
-                }
-            }
-        }
-        //std::cout<<"done"<<std::endl;
-        */
-
-        std::vector<file_info> file_info_arr(file_data.size(),{-1,-1,0});
-        gpu.add_variable("data",CL_MEM_READ_ONLY,sizeof(BYTE)*data.size());
-        gpu.add_variable("file_data",CL_MEM_READ_ONLY,sizeof(BYTE)*file_data.size());
-        gpu.add_variable("file_info_arr",CL_MEM_READ_WRITE,sizeof(file_info)*file_info_arr.size());
-
-        gpu.write_variable("data",sizeof(BYTE)*data.size(),data);
-        gpu.write_variable("file_data",sizeof(BYTE)*file_data.size(),file_data);
-        gpu.write_variable("file_info_arr",sizeof(file_info)*file_info_arr.size(),file_info_arr);
-
-        gpu.process_gpu("compress_kernel",{"data","file_data","file_info_arr"},{},{data.size(),file_data.size(),min_data_size},file_info_arr.size());
-        gpu.read_variable("file_info_arr",sizeof(file_info)*file_info_arr.size(),file_info_arr);
-
-        return file_info_arr;
-
-    }
-
     std::vector<file_info> add_file_to_data(std::vector<BYTE> &data, std::vector<BYTE> file_data)
     {
         std::vector<file_info> res_file_data, file_info_arr;
 
-        if(data.size()==0)
-        {
-            res_file_data.push_back({0,0,file_data.size()/2});
-            data.insert(data.end(),file_data.begin(),file_data.begin()+file_data.size()/2);
-            file_data.erase(file_data.begin(),file_data.begin()+file_data.size()/2);
-        }
-        file_info_arr=find_same_data(data,file_data);
-        /*file_info same_data_info=find_same_data(data,file_data);
-        while(same_data_info.local_index!=-1&&file_data.size()>0)
-        {
-            res_file_data.push_back({0,data.size(),same_data_info.local_index});
-            data.insert(data.end(),file_data.begin(),file_data.begin()+same_data_info.local_index);
-            res_file_data.push_back({0,same_data_info.dindex,same_data_info.dsize});
-            file_data.erase(file_data.begin(),file_data.begin()+same_data_info.local_index+same_data_info.dsize);
-            same_data_info=find_same_data(data,file_data);
-        }
         res_file_data.push_back({0,data.size(),file_data.size()});
         data.insert(data.end(),file_data.begin(),file_data.end());
-        file_data.clear();*/
-
-
-        for(int i=0;i<file_info_arr.size();i++)
-            if(file_info_arr[i].dsize>0)
-            {
-                res_file_data.push_back({0,data.size(),file_info_arr[i].local_index});
-                data.insert(data.end(),file_data.begin(),file_data.begin()+file_info_arr[i].local_index);
-                res_file_data.push_back(file_info_arr[i]);
-                file_data.erase(file_data.begin(),file_data.begin()+file_info_arr[i].local_index+file_info_arr[i].dsize);
-
-
-                std::cout<<file_info_arr[i].dsize<<" ";
-                i+=file_info_arr[i].dsize;
-
-            }
-
-        res_file_data.push_back({0,data.size(),file_data.size()});
-        data.insert(data.end(),file_data.begin(),file_data.end());
-        file_data.clear();
-
-        std::cout<<std::endl;
 
         return res_file_data;
     }
@@ -394,10 +308,10 @@ int main()
     std::string com,path, data_name;
     bool run=true;
 
-    achiver.generate_data("./0/","data.ok");
-    if(debug)std::cout<<std::endl;
-    achiver.generate_directory("./test/","data.ok");
-    std::cout<<"done"<<std::endl<<std::endl;
+    //achiver.generate_data("./0/","data.ok");
+    //if(debug)std::cout<<std::endl;
+    //achiver.generate_directory("./test/","data.ok");
+    //std::cout<<"done"<<std::endl<<std::endl;
 
 
     while(run)
