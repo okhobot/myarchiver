@@ -12,12 +12,19 @@ class Archiver
 {
 
 public:
-    BYTE *fileBuf;
+
 
     struct myfile
     {
         std::string name;
         bool isdir;
+    };
+
+    struct file_info
+    {
+        long local_index;
+        long dindex;
+        long dsize;
     };
 
     std::string myreplace(std::string s, std::string from, std::string to)
@@ -32,9 +39,9 @@ public:
         return s;
     }
 
-    std::string file_to_bin(std::string filePath)
+    std::vector<BYTE> file_to_bytes(std::string filePath)
     {
-        std::stringstream data;
+        std::vector<BYTE> fileBuf;
 
         long prev,fileSize;
 
@@ -42,7 +49,7 @@ public:
         if ((file = fopen(filePath.c_str(), "rb")) == NULL)
         {
             if(debug)std::cout << "Failed to load file \""<<filePath<<"\""<<std::endl;
-            return "0\n";
+            return fileBuf;
         }
 
 
@@ -51,44 +58,18 @@ public:
         fileSize =ftell(file);
         fseek(file,prev,SEEK_SET);
 
-        fileBuf = new BYTE[fileSize];
+        fileBuf .resize(fileSize);
         if(debug)std::cout << " " << fileSize<<std::endl;
-        fread(fileBuf, fileSize, 1, file);
+        fread(fileBuf.data(), fileSize, 1, file);
         fclose(file);
 
-        data<<fileSize<<std::endl;
-        for(int i=0; i<fileSize; i++)
-        {
-            data<<fileBuf[i];
-            //if(i<10)if(debug)cout<<(int)fileBuf[i]<<" ";
-        }
-
-
-        //if(debug)cout<<endl;
-        delete[] fileBuf;
-        return data.str();
+        return fileBuf;
     }
 
-    void bin_to_data(std::ifstream &data, long fileSize, std::string filePath)
+    void bytes_to_file(std::vector<BYTE>fileBuf, std::string filePath)
     {
-
-        char *tmp=new char[fileSize];
-
-        if(debug)std::cout<<"loading_file: "<<filePath<<std::endl;
-
-        fileBuf = new BYTE[fileSize];
-        data.get();
-        data.read(tmp, fileSize);
-
-        for(int i=0; i<fileSize; i++)
-        {
-            fileBuf[i]=tmp[i];
-            //if(i<10)if(debug)cout<<(int)fileBuf[i]<<" ";
-        }
-        //if(debug)cout<<endl;
-
         FILE* file_copy = fopen( filePath.c_str(), "wb" );
-        fwrite( fileBuf, 1, fileSize, file_copy);
+        fwrite( fileBuf.data(), 1, fileBuf.size(), file_copy);
         fclose(file_copy);
     }
 
@@ -120,29 +101,112 @@ public:
         return files;
     }
 
+    file_info find_same_data(std::vector<BYTE> &data, std::vector<BYTE> &file_data, long min_data_size=25)
+    {
+        //return {-1,-1,0};
+
+        long same_data_size=1;
+        //std::cout<<"Q"<<std::endl;
+        for(int i=0;i<file_data.size();i++)
+        {
+            //if(i%10000==0)std::cout<<i<<"/"<<file_data.size()<<std::endl;
+            for(int j=0;j<data.size();j++)
+            {
+                //if(j>17240000&&j%10000==0)std::cout<<j<<std::endl;
+                //if(i%10000==0&&j%10000==0)std::cout<<i<<"/"<<file_data.size()<<" | "<<j<<"/"<<data.size()<<std::endl;
+                if(file_data[i]==data[j])
+                {
+                    same_data_size=1;
+                    //if(i%10000==0&&j%10000==0)std::cout<<"qq"<<std::endl;
+                    while(i+same_data_size<file_data.size()&&j+same_data_size<data.size()&&file_data[i+same_data_size]==data[j+same_data_size])same_data_size++;
+                    //if(i%10000==0&&j%10000==0)std::cout<<i<<"/"<<file_data.size()<<" | "<<j<<"/"<<data.size()<<std::endl;
+                    if(same_data_size>=min_data_size)
+                    {
+                        if(debug)std::cout<<"found: "<<same_data_size<<std::endl;
+                        return {i,j,same_data_size};
+                    }
+                }
+            }
+        }
+        //std::cout<<"done"<<std::endl;
+        return {-1,-1,0};
+    }
+
+    std::vector<file_info> add_file_to_data(std::vector<BYTE> &data, std::vector<BYTE> file_data)
+    {
+        std::vector<file_info> res_file_data;
+
+        if(data.size()==0&&false)
+        {
+            res_file_data.push_back({0,0,file_data.size()/2});
+            data.insert(data.end(),file_data.begin(),file_data.begin()+file_data.size()/2);
+            file_data.erase(file_data.begin(),file_data.begin()+file_data.size()/2);
+        }
+
+        file_info same_data_info=find_same_data(data,file_data);
+        while(same_data_info.local_index!=-1&&file_data.size()>0)
+        {
+            res_file_data.push_back({0,data.size(),same_data_info.local_index});
+            data.insert(data.end(),file_data.begin(),file_data.begin()+same_data_info.local_index);
+            res_file_data.push_back({0,same_data_info.dindex,same_data_info.dsize});
+            file_data.erase(file_data.begin(),file_data.begin()+same_data_info.local_index+same_data_info.dsize);
+            same_data_info=find_same_data(data,file_data);
+        }
+        res_file_data.push_back({0,data.size(),file_data.size()});
+        data.insert(data.end(),file_data.begin(),file_data.end());
+        file_data.clear();
+
+        return res_file_data;
+    }
+
+
     void generate_data(std::string base_path_load, std::string data_name)
     {
+        std::vector<file_info> file_data;
+        std::vector<std::string> out_files_data;
+        std::vector<BYTE> data;
+
         std::vector<myfile> folder_data=read_folder(base_path_load);
+
+        std::stringstream ss;
         if(debug)std::cout<<"\n";
 
-        std::ofstream odata(data_name, std::ios::binary);
-        odata<<folder_data.size()<<std::endl;
         for(int i=0; i<folder_data.size(); i++)
         {
             if(debug)std::cout<<folder_data[i].name<<" ";
-            odata<<folder_data[i].name<<std::endl;
+
+            ss<<folder_data[i].name<<std::endl;
             if(folder_data[i].isdir)
             {
-                odata<<0<<std::endl;
+                ss<<0<<std::endl;
                 if(debug)std::cout<<0<<std::endl;
             }
-            else odata<<file_to_bin(base_path_load+folder_data[i].name)<<std::endl;
+            else //odata<<file_to_bin(base_path_load+folder_data[i].name)<<std::endl;
+            {
+                file_data=add_file_to_data(data, file_to_bytes(base_path_load+folder_data[i].name));
+                ss<<file_data.size()<<" ";
+                for(int i=0;i<file_data.size();i++)ss<<file_data[i].dindex<<" "<<file_data[i].dsize<<std::endl;
+
+            }
+            out_files_data.push_back(ss.str());
+            ss.str("");
+        }
+        std::ofstream odata(data_name, std::ios::binary);
+        odata<<folder_data.size()<<" "<<data.size()<<std::endl;
+        for(int i=0;i<data.size();i++)odata<<data[i];
+        odata<<std::endl;
+        for(int i=0;i<out_files_data.size();i++)
+        {
+            odata<<out_files_data[i];
         }
         odata.close();
     }
 
-    void generate_folder(std::string base_path_save, std::string data_name)
+    void generate_directory(std::string base_path_save, std::string data_name)
     {
+        long data_size;
+        std::vector<char> data;
+        std::vector<BYTE> file_data;
         if(base_path_save=="-/")
         {
             base_path_save=data_name;
@@ -154,22 +218,38 @@ public:
         if(GetFileAttributesA(base_path_save.c_str())==INVALID_FILE_ATTRIBUTES)CreateDirectoryA (base_path_save.c_str(), NULL);
 
         std::ifstream idata(data_name, std::ios::binary);
-        long file_count,file_size;
+        long files_count,file_data_size;
+        file_info fi;
         std::string fname;
-        idata>>file_count;
-        if(debug)std::cout<<"file_count: "<<file_count<<std::endl;
-        for(int i=0; i<file_count; i++)
+        idata>>files_count>>data_size;
+        if(debug)std::cout<<"files_count: "<<files_count<<std::endl;
+
+        data.resize(data_size);
+        idata.get();
+        idata.read(data.data(), data_size);
+
+        for(int i=0; i<files_count; i++)
         {
             fname="";
             getline(idata,fname);
             while(fname=="")
                 getline(idata,fname);
-            idata>>file_size;
-            if(debug)std::cout<<fname<<"; is directory: "<<(file_size==0)<<std::endl;
+            idata>>file_data_size;
+            if(debug)std::cout<<fname<<"; is directory: "<<(file_data_size==0)<<std::endl;
             fname=base_path_save+fname;
+            if(file_data_size==0)CreateDirectoryA (fname.c_str(), NULL);
+            else
+            {
+                file_data.clear();
+                for(int i=0;i<file_data_size;i++)
+                {
+                    idata>>fi.dindex>>fi.dsize;
+                    file_data.insert(file_data.end(),data.begin()+fi.dindex,data.begin()+fi.dindex+fi.dsize);
+                }
+                bytes_to_file(file_data,fname);
+            }
 
-            if(file_size==0)CreateDirectoryA (fname.c_str(), NULL);
-            else bin_to_data(idata,file_size,fname);
+            //else bin_to_data(idata,file_size,fname);
         }
         idata.close();
     }
@@ -271,10 +351,11 @@ int main()
     Archiver achiver;
     std::string com,path, data_name;
     bool run=true;
-    //achiver.generate_data("./0/","data.ok");
-    //if(debug)std::cout<<std::endl;
-    //achiver.generate_folder("./t/","data.ok");
 
+    achiver.generate_data("./0/","data.ok");
+    if(debug)std::cout<<std::endl;
+    achiver.generate_directory("./test/","data.ok");
+    std::cout<<"done"<<std::endl<<std::endl;
 
 
     while(run)
@@ -292,7 +373,7 @@ int main()
             if(com=="save")
                 achiver.generate_data(path,data_name);
             else if(com=="load")
-                achiver.generate_folder(path,data_name);
+                achiver.generate_directory(path,data_name);
         }
         else if(com=="setup")
             achiver.setup();
