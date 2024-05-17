@@ -6,13 +6,16 @@
 #include <algorithm>
 #define  _WIN32_WINNT  0x0600
 #include <Windows.h>
-#define debug 1
+#include <file_info.h>
+#include <my_gpu.hpp>
 
+#define debug 1
 class Archiver
 {
 
 public:
 
+    GPU gpu;
 
     struct myfile
     {
@@ -20,12 +23,14 @@ public:
         bool isdir;
     };
 
-    struct file_info
+
+    Archiver()
     {
-        long local_index;
-        long dindex;
-        long dsize;
-    };
+        gpu.init_gpu({"compress_kernel"});
+
+    }
+
+
 
     std::string myreplace(std::string s, std::string from, std::string to)
     {
@@ -101,10 +106,11 @@ public:
         return files;
     }
 
-    file_info find_same_data(std::vector<BYTE> &data, std::vector<BYTE> &file_data, long min_data_size=25)
+    std::vector<file_info> find_same_data(std::vector<BYTE> &data, std::vector<BYTE> &file_data, long min_data_size=16)
     {
-        return {-1,-1,0};
+        ///return {-1,-1,0};
 
+        /*
         long same_data_size=1;
         //std::cout<<"Q"<<std::endl;
         for(int i=0;i<file_data.size();i++)
@@ -123,27 +129,42 @@ public:
                     if(same_data_size>=min_data_size)
                     {
                         if(debug)std::cout<<"found: "<<same_data_size<<std::endl;
-                        return {i,j,same_data_size};
+                        ///return {i,j,same_data_size};
                     }
                 }
             }
         }
         //std::cout<<"done"<<std::endl;
-        return {-1,-1,0};
+        */
+
+        std::vector<file_info> file_info_arr(file_data.size(),{-1,-1,0});
+        gpu.add_variable("data",CL_MEM_READ_ONLY,sizeof(BYTE)*data.size());
+        gpu.add_variable("file_data",CL_MEM_READ_ONLY,sizeof(BYTE)*file_data.size());
+        gpu.add_variable("file_info_arr",CL_MEM_READ_WRITE,sizeof(file_info)*file_info_arr.size());
+
+        gpu.write_variable("data",sizeof(BYTE)*data.size(),data);
+        gpu.write_variable("file_data",sizeof(BYTE)*file_data.size(),file_data);
+        gpu.write_variable("file_info_arr",sizeof(file_info)*file_info_arr.size(),file_info_arr);
+
+        gpu.process_gpu("compress_kernel",{"data","file_data","file_info_arr"},{},{data.size(),file_data.size(),min_data_size},file_info_arr.size());
+        gpu.read_variable("file_info_arr",sizeof(file_info)*file_info_arr.size(),file_info_arr);
+
+        return file_info_arr;
+
     }
 
     std::vector<file_info> add_file_to_data(std::vector<BYTE> &data, std::vector<BYTE> file_data)
     {
-        std::vector<file_info> res_file_data;
+        std::vector<file_info> res_file_data, file_info_arr;
 
-        if(data.size()==0&&false)
+        if(data.size()==0)
         {
             res_file_data.push_back({0,0,file_data.size()/2});
             data.insert(data.end(),file_data.begin(),file_data.begin()+file_data.size()/2);
             file_data.erase(file_data.begin(),file_data.begin()+file_data.size()/2);
         }
-
-        file_info same_data_info=find_same_data(data,file_data);
+        file_info_arr=find_same_data(data,file_data);
+        /*file_info same_data_info=find_same_data(data,file_data);
         while(same_data_info.local_index!=-1&&file_data.size()>0)
         {
             res_file_data.push_back({0,data.size(),same_data_info.local_index});
@@ -154,7 +175,28 @@ public:
         }
         res_file_data.push_back({0,data.size(),file_data.size()});
         data.insert(data.end(),file_data.begin(),file_data.end());
+        file_data.clear();*/
+
+
+        for(int i=0;i<file_info_arr.size();i++)
+            if(file_info_arr[i].dsize>0)
+            {
+                res_file_data.push_back({0,data.size(),file_info_arr[i].local_index});
+                data.insert(data.end(),file_data.begin(),file_data.begin()+file_info_arr[i].local_index);
+                res_file_data.push_back(file_info_arr[i]);
+                file_data.erase(file_data.begin(),file_data.begin()+file_info_arr[i].local_index+file_info_arr[i].dsize);
+
+
+                std::cout<<file_info_arr[i].dsize<<" ";
+                i+=file_info_arr[i].dsize;
+
+            }
+
+        res_file_data.push_back({0,data.size(),file_data.size()});
+        data.insert(data.end(),file_data.begin(),file_data.end());
         file_data.clear();
+
+        std::cout<<std::endl;
 
         return res_file_data;
     }
