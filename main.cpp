@@ -20,6 +20,7 @@ public:
         bool isdir;
     };
 
+
     std::string myreplace(std::string s, std::string from, std::string to)
     {
         size_t pos=s.find(from);
@@ -136,7 +137,7 @@ public:
                 odata<<0<<std::endl;
                 if(debug)std::cout<<0<<std::endl;
             }
-            else odata<<file_to_bin(base_path_load+folder_data[i].name)<<std::endl;
+            else odata<<file_to_bytes(base_path_load+folder_data[i].name)<<std::endl;
         }
         odata.close();
     }
@@ -169,7 +170,7 @@ public:
             fname=base_path_save+fname;
 
             if(file_size==0)CreateDirectoryA (fname.c_str(), NULL);
-            else bin_to_data(idata,file_size,fname);
+            else bytes_to_file(idata,file_size,fname);
         }
         idata.close();
     }
@@ -205,7 +206,7 @@ public:
         std::string exe_path=get_exe_path();
 
         std::ofstream bat("open.bat");
-        bat<<"echo load %1 -| "<<exe_path<<std::endl;
+        bat<<"echo load \"%1\" \"-\"| "<<exe_path<<std::endl;
         bat.close();
 
 
@@ -214,7 +215,7 @@ public:
         check_registry_errors (RegCreateKeyExW (HKEY_CLASSES_ROOT,L"*\\shell\\openWithMyarchiver",0,L"",REG_OPTION_NON_VOLATILE,KEY_SET_VALUE,NULL,&hKey,NULL));
         if(hKey)
         {
-            data="Открыть с помощью myarchiver";
+            data="Open with myarchiver";
             check_registry_errors (RegSetValueEx (hKey, "MUIVerb", 0, REG_SZ, (LPBYTE)data.c_str(), strlen(data.c_str())));
             RegCloseKey(hKey);
         }
@@ -234,7 +235,7 @@ public:
         check_registry_errors (RegCreateKeyExW (HKEY_CLASSES_ROOT,L"Folder\\shell\\archiveWithMyarchiver",0,L"",REG_OPTION_NON_VOLATILE,KEY_SET_VALUE,NULL,&hKey,NULL));
         if(hKey)
         {
-            data="Архивировать с помощью myarchiver";
+            data="Archive with myarchiver";
             check_registry_errors (RegSetValueEx (hKey, "MUIVerb", 0, REG_SZ, (LPBYTE)data.c_str(), strlen(data.c_str())));
             RegCloseKey(hKey);
         }
@@ -243,7 +244,7 @@ public:
         if(hKey)
         {
 
-            data="cmd /c \"cd /d %1 &&echo save %1.ng %1| "+exe_path+" \"";
+            data="cmd /c \"cd /d %1 &&echo save \"%1.ng\" \"%1\"| "+exe_path+" \"";
             check_registry_errors (RegSetValueEx (hKey, "", 0, REG_SZ, (LPBYTE)data.c_str(), strlen(data.c_str())));
             RegCloseKey(hKey);
         }
@@ -261,42 +262,39 @@ public:
 
 
 
-int main()
+void read_and_process(std::string line, bool &run, Archiver &archiver)
 {
-    setlocale(1251,"Russian");
-    SetConsoleCP(1251);
-    SetConsoleOutputCP(1251);
+	int indx=0;
+	std::string com,path, data_name;
+	while(line.size()>indx&&line[indx]==' ')indx++;
 
-    Archiver achiver;
-    std::string com,path, data_name;
-    bool run=true;
-    //achiver.generate_data("./0/","data.ok");
-    //if(debug)std::cout<<std::endl;
-    //achiver.generate_folder("./t/","data.ok");
+	while(line.size()>indx&&line[indx]!=' '){com+=line[indx];indx++;}
+	indx++;
+	while(line.size()>indx&&line[indx]!='\"')indx++;
+	indx++;
+	while(line.size()>indx&&line[indx]!='\"'){data_name+=line[indx];indx++;}
+	indx++;
+	while(line.size()>indx&&line[indx]!='\"')indx++;
+	indx++;
+	while(line.size()>indx&&line[indx]!='\"'){path+=line[indx];indx++;}
 
+	std::cout<<com<<std::endl;
 
-
-    while(run)
-    {
-        std::cin>>com;
-        run=(com=="setup"||com=="delete"||com=="help");
+	run=(com=="setup"||com=="delete"||com=="help");
         if(com=="save"||com=="load")
         {
-            std::cin>>data_name;
-            std::cin.get();
-            getline(std::cin, path);
             if(debug)std::cout<<path<<std::endl;
-            achiver.check_path(path);
+            archiver.check_path(path);
 
             if(com=="save")
-                achiver.generate_data(path,data_name);
+                archiver.generate_data(path,data_name);
             else if(com=="load")
-                achiver.generate_folder(path,data_name);
+                archiver.generate_folder(path,data_name);
         }
         else if(com=="setup")
-            achiver.setup();
+            archiver.setup();
         else if(com=="delete")
-            achiver.delete_from_registry();
+            archiver.delete_from_registry();
         else if(com=="help")
         {
             const char* msg =
@@ -311,7 +309,40 @@ int main()
         }
 
         std::cout<<"done"<<std::endl<<std::endl;
+}
+
+
+
+int main(int argc, char *argv[])
+{
+    setlocale(1251,"Russian");
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+
+    Archiver archiver;
+    std::string line;
+    bool run=true;
+    //archiver.generate_data("./0/","data.ok");
+    //if(debug)std::cout<<std::endl;
+    //archiver.generate_folder("./t/","data.ok");
+
+
+
+
+
+    if(argc<=1)
+    while(run)
+    {
+        getline(std::cin, line);
+        read_and_process(line, run,archiver);
 
     }
+    else
+    {
+        for(int i=0;i<argc;i++)line+=argv[i];
+        read_and_process(line, run,archiver);
+    }
+
+
     return 0;
 }
