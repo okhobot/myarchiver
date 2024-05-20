@@ -278,7 +278,7 @@ void read_and_process(std::string line, bool &run, Archiver &archiver)
 	indx++;
 	while(line.size()>indx&&line[indx]!='\"'){path+=line[indx];indx++;}
 
-	std::cout<<com<<std::endl;
+	//std::cout<<com<<std::endl;
 
 	run=(com=="setup"||com=="delete"||com=="help");
         if(com=="save"||com=="load")
