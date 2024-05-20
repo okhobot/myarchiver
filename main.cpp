@@ -8,6 +8,18 @@
 #include <Windows.h>
 #define debug 1
 
+std::string myreplace(std::string s, std::string from, std::string to)
+    {
+        size_t pos=s.find(from);
+        while(pos!=std::string::npos)
+        {
+            s.replace(pos,from.size(),to);
+            pos+=to.size();
+            pos=s.find(from,pos);
+        }
+        return s;
+    }
+
 class Archiver
 {
 
@@ -21,17 +33,7 @@ public:
     };
 
 
-    std::string myreplace(std::string s, std::string from, std::string to)
-    {
-        size_t pos=s.find(from);
-        while(pos!=std::string::npos)
-        {
-            s.replace(pos,from.size(),to);
-            pos+=to.size();
-            pos=s.find(from,pos);
-        }
-        return s;
-    }
+
 
     std::string file_to_bytes(std::string filePath)
     {
@@ -266,9 +268,9 @@ void read_and_process(std::string line, bool &run, Archiver &archiver)
 {
 	int indx=0;
 	std::string com,path, data_name;
-	while(line.size()>indx&&line[indx]==' ')indx++;
+	while(line.size()>indx&&line[indx]=='\"')indx++;
 
-	while(line.size()>indx&&line[indx]!=' '){com+=line[indx];indx++;}
+	while(line.size()>indx&&line[indx]!='\"'){com+=line[indx];indx++;}
 	indx++;
 	while(line.size()>indx&&line[indx]!='\"')indx++;
 	indx++;
@@ -278,7 +280,7 @@ void read_and_process(std::string line, bool &run, Archiver &archiver)
 	indx++;
 	while(line.size()>indx&&line[indx]!='\"'){path+=line[indx];indx++;}
 
-	//std::cout<<com<<std::endl;
+	std::cout<<com<<std::endl;
 
 	run=(com=="setup"||com=="delete"||com=="help");
         if(com=="save"||com=="load")
@@ -320,7 +322,7 @@ int main(int argc, char *argv[])
     SetConsoleOutputCP(1251);
 
     Archiver archiver;
-    std::string line;
+    std::string line, com;
     bool run=true;
     //archiver.generate_data("./0/","data.ok");
     //if(debug)std::cout<<std::endl;
@@ -339,7 +341,8 @@ int main(int argc, char *argv[])
     }
     else
     {
-        for(int i=0;i<argc;i++)line+=argv[i];
+        for(int i=1;i<argc;i++){com=argv[i];line+='\"'+myreplace(com,"\"","")+'\"';line+=" ";}
+        std::cout<<line<<std::endl;
         read_and_process(line, run,archiver);
     }
 
