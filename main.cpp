@@ -85,7 +85,7 @@ public:
 
         for(int i=0; i<fileSize; i++)
         {
-            fileBuf[i]=tmp[i];
+            ///fileBuf[i]=tmp[i];
             //if(i<10)if(debug)cout<<(int)fileBuf[i]<<" ";
         }
         //if(debug)cout<<endl;
@@ -93,6 +93,8 @@ public:
         FILE* file_copy = fopen( filePath.c_str(), "wb" );
         fwrite( fileBuf, 1, fileSize, file_copy);
         fclose(file_copy);
+        delete[] fileBuf;
+        delete[] tmp;
     }
 
     std::vector<myfile> read_folder(std::string start_path, std::string filename="")
