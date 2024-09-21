@@ -35,6 +35,9 @@ public:
 
 
 
+
+
+
     std::string file_to_bytes(std::string filePath)
     {
         std::stringstream data;
@@ -85,7 +88,7 @@ public:
 
         for(int i=0; i<fileSize; i++)
         {
-            ///fileBuf[i]=tmp[i];
+            fileBuf[i]=tmp[i];
             //if(i<10)if(debug)cout<<(int)fileBuf[i]<<" ";
         }
         //if(debug)cout<<endl;
@@ -210,7 +213,7 @@ public:
         std::string exe_path=get_exe_path();
 
         std::ofstream bat("open.bat");
-        bat<<"echo load \"%1\" \"-\"| "<<exe_path<<std::endl;
+        bat<<"@chcp 1251\necho load \"%1\" \"-\"| "<<exe_path<<std::endl;
         bat.close();
 
 
@@ -272,8 +275,7 @@ void read_and_process(std::string line, bool &run, Archiver &archiver)
 	std::string com,path, data_name;
 	while(line.size()>indx&&line[indx]=='\"')indx++;
 
-	while(line.size()>indx&&line[indx]!='\"'){com+=line[indx];indx++;}
-	indx++;
+	while(line.size()>indx&&line[indx]!='\"'&&line[indx]!=' '){com+=line[indx];indx++;}
 	while(line.size()>indx&&line[indx]!='\"')indx++;
 	indx++;
 	while(line.size()>indx&&line[indx]!='\"'){data_name+=line[indx];indx++;}
@@ -282,37 +284,40 @@ void read_and_process(std::string line, bool &run, Archiver &archiver)
 	indx++;
 	while(line.size()>indx&&line[indx]!='\"'){path+=line[indx];indx++;}
 
-	std::cout<<com<<std::endl;
+	if(debug)std::cout<<com<<std::endl;
+	if(debug)std::cout<<data_name<<std::endl;
+	if(debug)std::cout<<path<<std::endl;
 
 	run=(com=="setup"||com=="delete"||com=="help");
-        if(com=="save"||com=="load")
-        {
-            if(debug)std::cout<<path<<std::endl;
-            archiver.check_path(path);
 
-            if(com=="save")
-                archiver.generate_data(path,data_name);
-            else if(com=="load")
-                archiver.generate_folder(path,data_name);
-        }
-        else if(com=="setup")
-            archiver.setup();
-        else if(com=="delete")
-            archiver.delete_from_registry();
-        else if(com=="help")
-        {
-            const char* msg =
-            "Usage: myarchiver.exe [args]: \n"
-            "|\thelp   THE ALL MIGHTY HELP\n"
-            "|\tsetup   Setup the program to the registry\n"
-            "|\tdelete Uninstall the program from the registry\n"
-            "|\tsave [Archive name] [path to save from] Load to archive\n"
-            "|\tload [Archive name] [path to save to] Load from archive\n"
-            ;
-            std::cout<<msg<<std::endl;
-        }
+    if(com=="save"||com=="load")
+    {
+        archiver.check_path(path);
 
-        std::cout<<"done"<<std::endl<<std::endl;
+        if(com=="save")
+            archiver.generate_data(path,data_name);
+        else if(com=="load")
+            archiver.generate_folder(path,data_name);
+    }
+    else if(com=="setup")
+        archiver.setup();
+    else if(com=="delete")
+        archiver.delete_from_registry();
+    else if(com=="help")
+    {
+        const char* msg =
+        "Usage: myarchiver.exe [args]: \n"
+        "|\thelp   View the list of commands\n"
+        "|\tsetup   Setup the program to the registry\n"
+        "|\tdelete Uninstall the program from the registry\n"
+        "|\tsave [archive name] [path to save from] Save to archive\n"
+        "|\tload [archive name] [path to save to] Load from archive\n"
+        "|highlight the ways to save and read with quotation marks(\")"
+        ;
+        std::cout<<msg<<std::endl;
+    }
+
+    std::cout<<"done"<<std::endl<<std::endl;
 }
 
 
